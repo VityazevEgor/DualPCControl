@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using DPC_Server.Server;
 
 namespace DPC_Server
@@ -27,30 +28,18 @@ namespace DPC_Server
 
             SMain.Start(1189);
 
-            
-
-            Task.Run(logsWriter);
+            DispatcherTimer timer = new DispatcherTimer();
+            timer.Interval = TimeSpan.FromSeconds(1);
+            timer.Tick += Timer_Tick;
+            timer.Start();
 
             var ov = new Overlay();
             ov.Show();
         }
 
-        private async Task logsWriter()
+        private void Timer_Tick(object sender, EventArgs e)
         {
-            await Task.Run(() =>
-            {
-                while (true)
-                {
-                    this.Dispatcher.Invoke(() =>
-                    {
-                        logsBox.Document.Blocks.Clear();
-                        foreach (string log in SMain.logs)
-                        {
-                            logsBox.Document.Blocks.Add(new Paragraph(new Run(log)));
-                        }
-                    });
-                }
-            });
+            logsBox.Text = string.Join('\n', SMain.logs);
         }
 
     }

@@ -17,7 +17,7 @@ namespace DPC_Server.Server
         private static TcpListener? listener = null;
 
         public static List<string> logs = new List<string>();
-        private static LinkedList<byte[]> packets = new LinkedList<byte[]>();
+        private static List<byte[]> packets = new List<byte[]>();
 
         public static void Start(int port)
         {
@@ -29,36 +29,36 @@ namespace DPC_Server.Server
             log($"Server was started on port {port}");
         }
 
-
+        // скорее всего тут что-то кушает много ЦП
         private static async Task woker()
         {
+            TcpClient client = await listener.AcceptTcpClientAsync();
+            NetworkStream stream = client.GetStream();
+            log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
             while (true)
             {
-                TcpClient client = await listener.AcceptTcpClientAsync();
-                log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
-
-                if (packets.First is not null)
+                if (packets.Count > 0)
                 {
-                    using (NetworkStream stream = client.GetStream())
-                    {
-                        await stream.WriteAsync(packets.First(), 0, packets.First().Length);
-                        log($"I sent packet with length = {packets.First().Length} to {client.Client.RemoteEndPoint}");
-                        packets.RemoveFirst();
-                    }
+                    log($"I sent packet with length = {packets[0].Length} to {client.Client.RemoteEndPoint}");
+                    await stream.WriteAsync(packets[0], 0, packets[0].Length);
+                    packets.RemoveAt(0);
+                    await Task.Delay(10);
                 }
-
             }
         }
 
 
         public static void sendKey(KeyPacket packet)
         {
+            log("I trying to encode packet");
             string json = JsonSerializer.Serialize(packet);
-            packets.AddLast(Encoding.UTF8.GetBytes(json));
+            packets.Add(Encoding.UTF8.GetBytes(json));
+            log("I encoded packet");
         }
 
         private static void log(string msg)
         {
+            if (logs.Count > 10) logs.Clear();
             logs.Add($"[{DateTime.Now}] {msg}");
         }
 
