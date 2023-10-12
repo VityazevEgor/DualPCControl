@@ -7,6 +7,9 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <TextBlock x:Name="logsBox" HorizontalAlignment="Left" Height="370" Margin="27,22,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Width="373"/>
+        <TextBox x:Name="logsBox" HorizontalAlignment="Left" Height="395" Margin="10,10,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="450"/>
+        <TextBox x:Name="ipBox" HorizontalAlignment="Left" Height="20" Margin="465,10,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="154"/>
+        <TextBox x:Name="portBox" HorizontalAlignment="Left" Height="20" Margin="634,10,0,0" TextWrapping="Wrap" Text="1189" VerticalAlignment="Top" Width="56"/>
+        <Button x:Name="startButton" Content="Button" HorizontalAlignment="Left" Height="20" Margin="713,10,0,0" VerticalAlignment="Top" Width="53" Click="startButton_Click"/>
     </Grid>
 </Window>

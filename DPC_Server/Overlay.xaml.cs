@@ -30,5 +30,10 @@ namespace DPC_Server
         {
             SMain.sendKey(new KeyPacket { key = e.Key, type = 1 });
         }
+
+        private void Window_KeyUp(object sender, KeyEventArgs e)
+        {
+            SMain.sendKey(new KeyPacket { key = e.Key, type =2 });
+        }
     }
 }

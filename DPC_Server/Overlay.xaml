@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DPC_Server"
         mc:Ignorable="d"
-        Title="Overlay" Height="450" Width="800" KeyDown="Window_KeyDown">
+        Title="Overlay" Height="450" Width="800" KeyDown="Window_KeyDown" KeyUp="Window_KeyUp">
     <Grid>
         
     </Grid>

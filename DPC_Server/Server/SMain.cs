@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -17,7 +16,7 @@ namespace DPC_Server.Server
         private static TcpListener? listener = null;
 
         public static List<string> logs = new List<string>();
-        private static List<byte[]> packets = new List<byte[]>();
+        private static LinkedList<byte[]> packets = new LinkedList<byte[]>();
 
         public static void Start(int port)
         {
@@ -29,19 +28,31 @@ namespace DPC_Server.Server
             log($"Server was started on port {port}");
         }
 
-        // скорее всего тут что-то кушает много ЦП
+        // надо добавить флаг, который бы показывал шо передача закончена
         private static async Task woker()
         {
-            TcpClient client = await listener.AcceptTcpClientAsync();
-            NetworkStream stream = client.GetStream();
-            log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
             while (true)
             {
-                if (packets.Count > 0)
+                log("Waiting for client");
+                TcpClient client = await listener.AcceptTcpClientAsync();
+                NetworkStream stream = client.GetStream();
+                log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
+                packets.Clear();
+                while (client.Connected)
                 {
-                    log($"I sent packet with length = {packets[0].Length} to {client.Client.RemoteEndPoint}");
-                    await stream.WriteAsync(packets[0], 0, packets[0].Length);
-                    packets.RemoveAt(0);
+                    if (packets.Count > 0)
+                    {
+                        try
+                        {
+                            log($"I sent packet with length = {packets.First().Length} to {client.Client.RemoteEndPoint}");
+                            await stream.WriteAsync(packets.First(), 0, packets.First().Length);
+                            packets.RemoveFirst();
+                        }
+                        catch (Exception ex)
+                        {
+                            log($"Got error: {ex.Message}");
+                        }
+                    }
                     await Task.Delay(10);
                 }
             }
@@ -50,10 +61,8 @@ namespace DPC_Server.Server
 
         public static void sendKey(KeyPacket packet)
         {
-            log("I trying to encode packet");
             string json = JsonSerializer.Serialize(packet);
-            packets.Add(Encoding.UTF8.GetBytes(json));
-            log("I encoded packet");
+            packets.AddLast(Encoding.UTF8.GetBytes(json));
         }
 
         private static void log(string msg)

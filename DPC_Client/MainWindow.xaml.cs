@@ -25,8 +25,7 @@ namespace DPC_Client
         public MainWindow()
         {
             InitializeComponent();
-            CMain.start("127.0.0.1", 1189);
-            Task.Run(logsWriter);
+            
         }
 
         private async Task logsWriter()
@@ -44,6 +43,12 @@ namespace DPC_Client
                 }
                 await Task.Delay(100);
             }
+        }
+
+        private void startButton_Click(object sender, RoutedEventArgs e)
+        {
+            CMain.start(ipBox.Text.Trim(), int.Parse(portBox.Text.Trim()));
+            Task.Run(logsWriter);
         }
     }
 }
