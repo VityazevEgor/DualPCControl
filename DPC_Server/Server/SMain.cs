@@ -23,13 +23,12 @@ namespace DPC_Server.Server
             ipPoint = new IPEndPoint(IPAddress.Any, port);
             listener = new TcpListener(ipPoint);
             listener.Start();
-            Task.Run(woker);
+            Task.Run(worker);
 
             log($"Server was started on port {port}");
         }
 
-        // надо добавить флаг, который бы показывал шо передача закончена
-        private static async Task woker()
+        private static async Task worker()
         {
             while (true)
             {
@@ -40,12 +39,21 @@ namespace DPC_Server.Server
                 packets.Clear();
                 while (client.Connected)
                 {
-                    if (packets.Count > 0)
+                    if (packets.First is not null)
                     {
                         try
                         {
-                            log($"I sent packet with length = {packets.First().Length} to {client.Client.RemoteEndPoint}");
-                            await stream.WriteAsync(packets.First(), 0, packets.First().Length);
+                            byte[] packet = packets.First();
+                            byte[] lengthPrefix = BitConverter.GetBytes(packet.Length);
+
+                            // отпрвляем инфу о длине пакета (4 байта)
+                            await stream.WriteAsync(lengthPrefix, 0, lengthPrefix.Length);
+                            log("I sent info about len of packet");
+
+                            await stream.WriteAsync(packet, 0, packet.Length);
+                            log($"I send packet with len = {packet.Length}");
+
+
                             packets.RemoveFirst();
                         }
                         catch (Exception ex)
@@ -59,11 +67,14 @@ namespace DPC_Server.Server
         }
 
 
-        public static void sendKey(KeyPacket packet)
+        public static void sendPacket<T>(T packet)
         {
             string json = JsonSerializer.Serialize(packet);
             packets.AddLast(Encoding.UTF8.GetBytes(json));
         }
+
+
+
 
         private static void log(string msg)
         {

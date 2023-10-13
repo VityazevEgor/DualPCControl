@@ -28,12 +28,25 @@ namespace DPC_Server
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-            SMain.sendKey(new KeyPacket { key = e.Key, type = 1 });
+
+            SMain.sendPacket<KeyPacket>(new KeyPacket { key = e.Key, type = 1 });
         }
 
         private void Window_KeyUp(object sender, KeyEventArgs e)
         {
-            SMain.sendKey(new KeyPacket { key = e.Key, type =2 });
+            SMain.sendPacket<KeyPacket>(new KeyPacket { key = e.Key, type =2 });
+        }
+
+
+        private DateTime latMouseMove = DateTime.Now;
+        private void Window_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (DateTime.Now - latMouseMove >= TimeSpan.FromMilliseconds(50))
+            {
+                Point pos = e.GetPosition(this);
+                SMain.sendPacket<MouseMovePacket>(new MouseMovePacket { x = pos.X, y = pos.Y, formHeight = this.Height, formWidth = this.Width });
+                latMouseMove = DateTime.Now;
+            }
         }
     }
 }
