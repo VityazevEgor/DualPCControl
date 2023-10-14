@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DPC_Client.Client.Models;
 using System.Text.Json;
+using DPC_Client.Client;
 
 namespace DPC_Client.Client
 {
@@ -14,22 +15,56 @@ namespace DPC_Client.Client
         private static TcpClient? client = null;
         public static List<string> logs = new List<string>();
 
+        // пакеты, которые мы принимаем
         private static LinkedList<KeyPacket> keyPackets = new LinkedList<KeyPacket>();
         private static LinkedList<MouseMovePacket> movePackets = new LinkedList<MouseMovePacket>();
+        private static LinkedList<MouseButtonPacket> mouseButtonPackets = new LinkedList<MouseButtonPacket>();
+        private static LinkedList<MouseWheelPacket> mouseWheelPackets = new LinkedList<MouseWheelPacket>();
+        private static LinkedList<ClipBoardPacket> clipBoardPackets = new LinkedList<ClipBoardPacket>();
+
+        //пакеты, которые мы отправляем
+        private static LinkedList<byte[]> packets = new LinkedList<byte[]>();
+        private static ClipBoardPacket lastCPPacket = null;
 
         public static void start(string ip, int port)
         {
-            client = new TcpClient(ip, port);
-            log($"I connected to {ip}:{port}");
-            Task.Run(worker);
+            //client = new TcpClient(ip, port);
+            //log($"I connected to {ip}:{port}");
+            Task.Run(()=>worker(ip, port));
             Task.Run(packetsProcessor);
         }
 
 
-        private static async Task worker()
+        private static async Task worker(string ip, int port)
         {
-            NetworkStream stream = client.GetStream();
             while (true)
+            {
+                try
+                {
+                    client = new TcpClient(ip, port);
+                    NetworkStream stream = client.GetStream();
+                    packets.Clear();
+                    lastCPPacket = null;
+                    ClipBoardAPI.ClearClipboard();
+
+                    Task[] tasks = new Task[] { listener(stream), sender(stream), clipBoardGetter() };
+                    log("Connected to the server!");
+
+                    
+                    await Task.WhenAll(tasks);
+                }
+                catch (Exception ex)
+                {
+                    log($"Can't connect to the server");
+                }
+                await Task.Delay(10);
+            }
+            
+        }
+
+        private static async Task listener(NetworkStream stream)
+        {
+            while (client.Connected)
             {
                 try
                 {
@@ -41,15 +76,30 @@ namespace DPC_Client.Client
                     if (packetType == typeof(KeyPacket))
                     {
                         keyPackets.AddLast(JsonSerializer.Deserialize<KeyPacket>(rawJson));
-                        log($"I got packet with {rawPacket.Length} bytes for key {keyPackets.Last().key}");
+                        //log($"I got packet with {rawPacket.Length} bytes for key {keyPackets.Last().key}");
                     }
-                    if (packetType == typeof (MouseMovePacket))
+                    if (packetType == typeof(MouseMovePacket))
                     {
                         movePackets.AddLast(JsonSerializer.Deserialize<MouseMovePacket>(rawJson));
-                        log($"I gout mouse move packet with x={movePackets.Last().x}, y={movePackets.Last().y}, formWidth = {movePackets.Last().formWidth}");
+                        //log($"I gout mouse move packet with x={movePackets.Last().x}, y={movePackets.Last().y}, formWidth = {movePackets.Last().formWidth}");
+                    }
+                    if (packetType == typeof(MouseButtonPacket))
+                    {
+                        mouseButtonPackets.AddLast(JsonSerializer.Deserialize<MouseButtonPacket>(rawJson));
+                        //log($"I gor packet for mouse button = {mouseButtonPackets.Last().mButton} with state = {mouseButtonPackets.Last().state}");
+                    }
+                    if (packetType == typeof(MouseWheelPacket))
+                    {
+                        mouseWheelPackets.AddLast(JsonSerializer.Deserialize<MouseWheelPacket>(rawJson));
+                        //log($"Got mouse wheel packet with delta = {mouseWheelPackets.Last().delta}");
+                    }
+                    if (packetType == typeof(ClipBoardPacket))
+                    {
+                        clipBoardPackets.AddLast(JsonSerializer.Deserialize<ClipBoardPacket>(rawJson));
+                        lastCPPacket = clipBoardPackets.Last();
+                        log($"Got clipBoard packet");
                     }
 
-                    
                 }
                 catch (Exception ex)
                 {
@@ -58,6 +108,73 @@ namespace DPC_Client.Client
                 await Task.Delay(10);
             }
         }
+
+        private static async Task sender(NetworkStream stream)
+        {
+            while (client.Connected)
+            {
+                if (packets.First is not null)
+                {
+                    try
+                    {
+                        byte[] packet = packets.First();
+                        byte[] lengthPrefix = BitConverter.GetBytes(packet.Length);
+
+                        // отпрвляем инфу о длине пакета (4 байта)
+                        await stream.WriteAsync(lengthPrefix, 0, lengthPrefix.Length);
+                        log("I sent info about len of packet");
+
+                        await stream.WriteAsync(packet, 0, packet.Length);
+                        log($"I send packet with len = {packet.Length}");
+
+
+                        packets.RemoveFirst();
+                    }
+                    catch (Exception ex)
+                    {
+                        log($"Got error while sending packet: {ex.Message}");
+                    }
+                }
+
+                await Task.Delay(10);
+            }
+        }
+
+
+        // тут ошибка параметр S can not be null
+        private static async Task clipBoardGetter()
+        {
+            while (client.Connected)
+            {
+                try
+                {
+                    if (ClipBoardAPI.ContainsText())
+                    {
+                        var packet = new ClipBoardPacket { type = 1, clipBoardData = Encoding.UTF8.GetBytes(ClipBoardAPI.GetText()) };
+                        if (!packet.Equals(lastCPPacket))
+                        {
+                            sendPacket(packet);
+                            lastCPPacket = packet;
+                            log($"I added cp packet");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log($"Got error in cpGetter: {ex.Message}");
+                }
+
+                await Task.Delay(10);
+            }
+        }
+
+
+        public static void sendPacket<T>(T packet)
+        {
+            string json = JsonSerializer.Serialize(packet);
+            packets.AddLast(Encoding.UTF8.GetBytes(json));
+        }
+
 
         private static Type detectPacketType(string jsonString)
         {
@@ -72,6 +189,18 @@ namespace DPC_Client.Client
                 else if (root.TryGetProperty("formHeight", out _))
                 {
                     return typeof(MouseMovePacket);
+                }
+                else if (root.TryGetProperty("mButton", out _))
+                {
+                    return typeof(MouseButtonPacket);
+                }
+                else if (root.TryGetProperty("delta", out _))
+                {
+                    return typeof(MouseWheelPacket);
+                }
+                else if (root.TryGetProperty("clipBoardData", out _) )
+                {
+                    return typeof(ClipBoardPacket);
                 }
             }
 
@@ -92,7 +221,7 @@ namespace DPC_Client.Client
             {
                 bytesRead += await stream.ReadAsync(packetBuffer, bytesRead, packetLength - bytesRead);
             }
-            log($"I got this packet: {string.Join(',', packetBuffer)}");
+            //log($"I got this packet: {string.Join(',', packetBuffer)}");
             return packetBuffer;
         }
 
@@ -101,38 +230,37 @@ namespace DPC_Client.Client
         {
             while (true)
             {
-                if (keyPackets.First is not null)
-                {
-                    try
-                    {
-                        KeyboardEmulation.SimulateKey(keyPackets.First());
-                        log($"I emulated key: {keyPackets.First().key} with state {keyPackets.First().type}");
-                    }
-                    catch (Exception ex)
-                    {
-                        log($"Got error in pProcessor: {ex.Message}");
-                    }
-                    keyPackets.RemoveFirst();
-                }
+                ProcessPacket(keyPackets, KeyboardEmulation.SimulateKey);
 
-                if (movePackets.First is not null)
-                {
-                    try
-                    {
-                        MouseEmulation.moveMouse(movePackets.First());
-                        //log($"I emulated mouse move");
-                    }
-                    catch (Exception ex)
-                    {
-                        log($"Got error in pProcessor: {ex.Message}");
-                    }
-                    movePackets.RemoveFirst();
-                }
+                ProcessPacket(movePackets, MouseEmulation.moveMouse);
 
+                ProcessPacket(mouseButtonPackets, MouseEmulation.mouseButton);
+
+                ProcessPacket(mouseWheelPackets, MouseEmulation.wheel);
+
+                ProcessPacket(clipBoardPackets, ClipBoardAPI.processClipPacket);
 
                 await Task.Delay(10);
             }
         }
+
+        private static void ProcessPacket<T>(LinkedList<T> packets, Action<T> action)
+        {
+            if (packets.First is not null)
+            {
+                try
+                {
+                    action(packets.First());
+                }
+                catch (Exception ex)
+                {
+                    log($"Got error in pProcessor: {ex.Message}");
+                }
+                packets.RemoveFirst();
+            }
+        }
+
+
 
         private static void log(string message)
         {
