@@ -21,6 +21,7 @@ namespace DPC_Client.Client
         private static LinkedList<MouseButtonPacket> mouseButtonPackets = new LinkedList<MouseButtonPacket>();
         private static LinkedList<MouseWheelPacket> mouseWheelPackets = new LinkedList<MouseWheelPacket>();
         private static LinkedList<ClipBoardPacket> clipBoardPackets = new LinkedList<ClipBoardPacket>();
+        private static LinkedList<LayoutPacket> layoutPackets = new LinkedList<LayoutPacket>();
 
         //пакеты, которые мы отправляем
         private static LinkedList<byte[]> packets = new LinkedList<byte[]>();
@@ -41,12 +42,15 @@ namespace DPC_Client.Client
             {
                 try
                 {
+                    // подготовка
                     client = new TcpClient(ip, port);
                     NetworkStream stream = client.GetStream();
                     packets.Clear();
                     lastCPPacket = null;
                     ClipBoardAPI.ClearClipboard();
+                    KeyboardEmulation.clearPressedKeys();
 
+                    // запуск всего
                     Task[] tasks = new Task[] { listener(stream), sender(stream), clipBoardGetter() };
                     log("Connected to the server!");
 
@@ -55,7 +59,7 @@ namespace DPC_Client.Client
                 }
                 catch (Exception ex)
                 {
-                    log($"Can't connect to the server");
+                    log($"Can't connect to the server: {ex.Message}");
                 }
                 await Task.Delay(10);
             }
@@ -98,6 +102,11 @@ namespace DPC_Client.Client
                         clipBoardPackets.AddLast(JsonSerializer.Deserialize<ClipBoardPacket>(rawJson));
                         lastCPPacket = clipBoardPackets.Last();
                         log($"Got clipBoard packet");
+                    }
+                    if (packetType == typeof(LayoutPacket))
+                    {
+                        layoutPackets.AddLast(JsonSerializer.Deserialize<LayoutPacket>(rawJson));
+                        log($"Got layout packet with code - {layoutPackets.Last().layoutCode}");
                     }
 
                 }
@@ -202,6 +211,10 @@ namespace DPC_Client.Client
                 {
                     return typeof(ClipBoardPacket);
                 }
+                else if (root.TryGetProperty("layoutCode", out _))
+                {
+                    return typeof(LayoutPacket);
+                }
             }
 
             throw new Exception("Unknown type");
@@ -239,6 +252,8 @@ namespace DPC_Client.Client
                 ProcessPacket(mouseWheelPackets, MouseEmulation.wheel);
 
                 ProcessPacket(clipBoardPackets, ClipBoardAPI.processClipPacket);
+
+                ProcessPacket(layoutPackets, LayoutAPI.setLayout);
 
                 await Task.Delay(10);
             }

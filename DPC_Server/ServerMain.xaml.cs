@@ -33,7 +33,7 @@ namespace DPC_Server
         public MainWindow()
         {
             InitializeComponent();
-
+            //System.Windows.MessageBox.Show(LayoutAPI.GetLayout());
             SMain.Start(1189);
 
             DispatcherTimer timer = new DispatcherTimer();

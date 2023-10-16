@@ -43,8 +43,8 @@ namespace DPC_Server.Server
                 log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
                 packets.Clear();
 
-                getClipBoard(); // отправляем пакет с буфером обмена при подключении второго ПК
-                Task[] tasks = new Task[] { sender(stream), listenerT(stream)};
+                sendClipBoard(); // отправляем пакет с буфером обмена при подключении второго ПК
+                Task[] tasks = new Task[] { sender(stream), listenerT(stream), layoutGetter()};
                 await Task.WhenAll(tasks);
                 await Task.Delay(10);
             }
@@ -121,7 +121,7 @@ namespace DPC_Server.Server
         }
 
 
-        private static void getClipBoard()
+        public static void sendClipBoard()
         {
             try
             {
@@ -135,6 +135,30 @@ namespace DPC_Server.Server
             catch (Exception ex)
             {
                 log($"Got error in cpGetter: {ex.Message}");
+            }
+        }
+
+
+        private static async Task layoutGetter()
+        {
+            string lastLayout = string.Empty;
+            while (client.Connected)
+            {
+                try
+                {
+                    string currentLayout = LayoutAPI.GetLayout();//LayoutAPI.GetLayoutCode();
+                    if (lastLayout != currentLayout)
+                    {
+                        sendPacket<LayoutPacket>(new LayoutPacket { layoutCode = currentLayout });
+                        lastLayout = currentLayout;
+                        log($"I added packet about layout with code = {lastLayout}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log($"Can't get layout cuz of it: {ex.Message}");
+                }
+                await Task.Delay(300);
             }
         }
 

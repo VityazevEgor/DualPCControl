@@ -31,11 +31,14 @@ namespace DPC_Server
         public Overlay()
         {
             InitializeComponent();
-            this.Height = GetSystemMetrics(1);
-            this.Width = GetSystemMetrics(0);
-            this.WindowStyle = WindowStyle.None;
-            this.Topmost = true;
-            this.WindowState = WindowState.Maximized;
+            if (!debug)
+            {
+                this.Height = GetSystemMetrics(1);
+                this.Width = GetSystemMetrics(0);
+                this.WindowStyle = WindowStyle.None;
+                this.Topmost = true;
+                this.WindowState = WindowState.Maximized;
+            }
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -84,6 +87,10 @@ namespace DPC_Server
             {
                 if (this.IsVisible)
                 {
+                    // отпрвляем буфер обмена каждый раз когда начинаем управлять вторым ПК
+                    SMain.sendClipBoard();
+
+                    // делаем скриншот
                     int monitorH = GetSystemMetrics(1);
                     int monitorW = GetSystemMetrics(0);
                     string newFileName = System.IO.Path.GetTempFileName();
