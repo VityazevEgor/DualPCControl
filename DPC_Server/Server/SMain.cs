@@ -21,32 +21,51 @@ namespace DPC_Server.Server
 
         private static TcpClient client = null;
 
-        // пакет, который мы принимаем
-        private static LinkedList<ClipBoardPacket> clipBoardPackets = new LinkedList<ClipBoardPacket>();
+        public static bool isLaunched = false;
         public static void Start(int port)
         {
             ipPoint = new IPEndPoint(IPAddress.Any, port);
             listener = new TcpListener(ipPoint);
             listener.Start();
+            isLaunched=true;
             Task.Run(worker);
 
             log($"Server was started on port {port}");
         }
 
+        public static void Stop()
+        {
+            // Остановить TcpListener
+            listener?.Stop();
+
+            // Закрыть все открытые соединения
+            client?.Close();
+
+            isLaunched = false;
+            log("Server was stopped");
+        }
+
         private static async Task worker()
         {
-            while (true)
+            try
             {
-                log("Waiting for client");
-                client = await listener.AcceptTcpClientAsync();
-                NetworkStream stream = client.GetStream();
-                log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
-                packets.Clear();
+                while (isLaunched)
+                {
+                    log("Waiting for client");
+                    client = await listener.AcceptTcpClientAsync();
+                    NetworkStream stream = client.GetStream();
+                    log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
+                    packets.Clear();
 
-                sendClipBoard(); // отправляем пакет с буфером обмена при подключении второго ПК
-                Task[] tasks = new Task[] { sender(stream), listenerT(stream), layoutGetter()};
-                await Task.WhenAll(tasks);
-                await Task.Delay(10);
+                    sendClipBoard(); // отправляем пакет с буфером обмена при подключении второго ПК
+                    Task[] tasks = new Task[] { sender(stream), listenerT(stream), layoutGetter() };
+                    await Task.WhenAll(tasks);
+                    await Task.Delay(10);
+                }
+            }
+            catch (Exception ex)
+            {
+                log($"Main worker was stopped: {ex.Message}");
             }
         }
 

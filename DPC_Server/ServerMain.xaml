@@ -7,6 +7,23 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        <TextBox x:Name="logsBox" HorizontalAlignment="Left" Height="336" Margin="25,40,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="375"/>
+        <TabControl>
+            <TabItem Header="Settings">
+                <Grid Background="#FFE5E5E5">
+                    <Label Content="Button for overlay activation:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="overlayButtonBox" HorizontalAlignment="Left" Margin="10,36,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="162" KeyDown="overlayButtonBox_KeyDown" PreviewTextInput="overlayButtonBox_PreviewTextInput"/>
+
+                    <Label Content="Server port:" HorizontalAlignment="Left" Margin="10,59,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.064,1.708"/>
+                    <TextBox x:Name="serverPortBox" HorizontalAlignment="Left" Margin="10,85,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="162"/>
+                    <CheckBox x:Name="startUpBox" Content="Run on start up" HorizontalAlignment="Left" Margin="10,118,0,0" VerticalAlignment="Top" Checked="startUpBox_Checked" Unchecked="startUpBox_Unchecked"/>
+                    <Button x:Name="runButton" Content="Run server" HorizontalAlignment="Left" Margin="10,146,0,0" VerticalAlignment="Top" Width="162" Click="runButton_Click"/>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Debug">
+                <Grid Background="#FFE5E5E5">
+                    <TextBox x:Name="logsBox" HorizontalAlignment="Center" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Center" Width="774" Height="386"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
