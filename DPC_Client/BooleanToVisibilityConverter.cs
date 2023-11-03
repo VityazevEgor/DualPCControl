@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Windows;
 
-namespace DPC_Server
+namespace DPC_Client
 {
     public class BooleanToVisibilityConverter : IValueConverter
     {

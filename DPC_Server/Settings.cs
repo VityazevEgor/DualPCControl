@@ -71,7 +71,7 @@ namespace DPC_Server
 
         public static Settings load()
         {
-            if (!Directory.Exists(pathToSave) && !File.Exists(Path.Combine(pathToSave, fileName)))
+            if (!Directory.Exists(pathToSave) || !File.Exists(Path.Combine(pathToSave, fileName)))
             {
                 return null;
             }

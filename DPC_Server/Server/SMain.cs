@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using DPC_Server.Server.Models;
 
@@ -22,12 +24,14 @@ namespace DPC_Server.Server
         private static TcpClient client = null;
 
         public static bool isLaunched = false;
+        private static CancellationTokenSource stopMainW = null;
         public static void Start(int port)
         {
             ipPoint = new IPEndPoint(IPAddress.Any, port);
             listener = new TcpListener(ipPoint);
             listener.Start();
             isLaunched=true;
+            stopMainW = new CancellationTokenSource();
             Task.Run(worker);
 
             log($"Server was started on port {port}");
@@ -35,43 +39,50 @@ namespace DPC_Server.Server
 
         public static void Stop()
         {
+            stopMainW.Cancel();
             client?.Close();
-            // Остановить TcpListener
             listener?.Stop();
-            log("Stopped listener");
-            //listener.Server.
             isLaunched = false;
             log("Server was stopped");
         }
 
-        // надо сделать нормальную остановку
         private static async Task worker()
         {
-            try
+            while (isLaunched)
             {
-                while (isLaunched)
+                log("Waiting for client");
+                try
                 {
-                    log("Waiting for client");
-                    client = await listener.AcceptTcpClientAsync();
-                    NetworkStream stream = client.GetStream();
-                    log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
-                    packets.Clear();
-
-                    sendClipBoard(); // отправляем пакет с буфером обмена при подключении второго ПК
-                    Task[] tasks = new Task[] { sender(stream), listenerT(stream), layoutGetter() };
-                    await Task.WhenAll(tasks);
-                    await Task.Delay(10);
+                    client = await listener.AcceptTcpClientAsync(stopMainW.Token);
                 }
-            }
-            catch (Exception ex)
-            {
-                log($"Main worker was stopped: {ex.Message}");
+                catch (OperationCanceledException ex)
+                {
+                    Debug.WriteLine($"Task canceled in worker: {ex.Message}");
+                    // убираем токен и выходим из цикла
+                    stopMainW.Dispose();
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    log($"Error in MainWoker: {ex.Message}");
+                    // если произошла инная ошибка, то просто ждём немного и продолжаем ждать подключения
+                    await Task.Delay(1000);
+                    continue;
+                }
+                NetworkStream stream = client.GetStream();
+                log($"Client with ip = {client.Client.RemoteEndPoint} was connected");
+                packets.Clear();
+
+                sendClipBoard(); // отправляем пакет с буфером обмена при подключении второго ПК
+                Task[] tasks = new Task[] { sender(stream), listenerT(stream), layoutGetter() };
+                await Task.WhenAll(tasks);
+                await Task.Delay(10);
             }
         }
 
         private static async Task sender(NetworkStream stream)
         {
-            while (client.Connected)
+            while (client!=null && IsConnected(client.Client))
             {
                 if (packets.First is not null)
                 {
@@ -102,7 +113,7 @@ namespace DPC_Server.Server
 
         private static async Task listenerT(NetworkStream stream)
         {
-            while (client.Connected)
+            while (client != null && IsConnected(client.Client))
             {
                 try
                 {
@@ -163,7 +174,7 @@ namespace DPC_Server.Server
         private static async Task layoutGetter()
         {
             string lastLayout = string.Empty;
-            while (client.Connected)
+            while (client != null && IsConnected(client.Client))
             {
                 try
                 {
@@ -189,10 +200,20 @@ namespace DPC_Server.Server
             packets.AddLast(Encoding.UTF8.GetBytes(json));
         }
 
-
+        private static bool IsConnected(Socket socket)
+        {
+            try
+            {
+                return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+            }
+            catch (SocketException)
+            {
+                return false;
+            }
+        }
         private static void log(string msg)
         {
-            if (logs.Count > 10) logs.Clear();
+            if (logs.Count > 15) logs.Clear();
             logs.Add($"[{DateTime.Now}] {msg}");
         }
 

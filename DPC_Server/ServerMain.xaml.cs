@@ -57,6 +57,7 @@ namespace DPC_Server
 
             timer.Interval = TimeSpan.FromMilliseconds(100);
             timer.Tick += Timer_Tick;
+            timer.Start();
 
         }
 
@@ -94,8 +95,6 @@ namespace DPC_Server
             {
                 m_GlobalHook = Hook.GlobalEvents();
                 m_GlobalHook.KeyDown += OnKeyDown;
-                
-                timer.Start();
 
 
                 if (int.TryParse(serverPortBox.Text, out int port))
@@ -104,7 +103,7 @@ namespace DPC_Server
                 }
                 else
                 {
-                    System.Windows.MessageBox.Show($"Entered port is not valid number");
+                    MessageBox.Show($"Entered port is not valid number");
                     return;
                 }
                 settings.setStartUp();

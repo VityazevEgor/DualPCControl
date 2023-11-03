@@ -27,16 +27,25 @@ namespace DPC_Client.Client
         private static LinkedList<byte[]> packets = new LinkedList<byte[]>();
         private static ClipBoardPacket lastCPPacket = null;
 
+        public static bool isLaunched = false;
+
         public static void start(string ip, int port)
         {
             Task.Run(()=>worker(ip, port));
             Task.Run(packetsProcessor);
+            isLaunched=true;
         }
 
+        public static void stop()
+        {
+            isLaunched=false;
+            client?.Close();
+            client?.Dispose();
+        }
 
         private static async Task worker(string ip, int port)
         {
-            while (true)
+            while (isLaunched)
             {
                 try
                 {
@@ -58,15 +67,17 @@ namespace DPC_Client.Client
                 catch (Exception ex)
                 {
                     log($"Can't connect to the server: {ex.Message}");
+                    client?.Dispose();
                 }
                 await Task.Delay(10);
             }
+            log("Main worker finished his work");
             
         }
 
         private static async Task listener(NetworkStream stream)
         {
-            while (IsConnected(client.Client))
+            while (client!=null && IsConnected(client.Client))
             {
                 try
                 {
@@ -119,7 +130,7 @@ namespace DPC_Client.Client
 
         private static async Task sender(NetworkStream stream)
         {
-            while (IsConnected(client.Client))
+            while (client != null && IsConnected(client.Client))
             {
                 if (packets.First is not null)
                 {
@@ -152,7 +163,7 @@ namespace DPC_Client.Client
         // тут ошибка параметр S can not be null
         private static async Task clipBoardGetter()
         {
-            while (IsConnected(client.Client))
+            while (client != null && IsConnected(client.Client))
             {
                 try
                 {
