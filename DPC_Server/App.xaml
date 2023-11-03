@@ -4,6 +4,8 @@
              xmlns:local="clr-namespace:DPC_Server"
              StartupUri="ServerMain.xaml">
     <Application.Resources>
-         
+        <ResourceDictionary>
+            <local:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

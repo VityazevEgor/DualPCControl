@@ -35,16 +35,16 @@ namespace DPC_Server.Server
 
         public static void Stop()
         {
+            client?.Close();
             // Остановить TcpListener
             listener?.Stop();
-
-            // Закрыть все открытые соединения
-            client?.Close();
-
+            log("Stopped listener");
+            //listener.Server.
             isLaunched = false;
             log("Server was stopped");
         }
 
+        // надо сделать нормальную остановку
         private static async Task worker()
         {
             try
@@ -97,6 +97,7 @@ namespace DPC_Server.Server
                 }
                 await Task.Delay(10);
             }
+            log("Sender finished his work");
         }
 
         private static async Task listenerT(NetworkStream stream)
@@ -119,6 +120,7 @@ namespace DPC_Server.Server
                 }
                 await Task.Delay(10);
             }
+            log("Listener finished his work");
         }
 
         private static async Task<byte[]> readPacket(NetworkStream stream)

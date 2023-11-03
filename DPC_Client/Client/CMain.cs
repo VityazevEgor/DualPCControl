@@ -29,8 +29,6 @@ namespace DPC_Client.Client
 
         public static void start(string ip, int port)
         {
-            //client = new TcpClient(ip, port);
-            //log($"I connected to {ip}:{port}");
             Task.Run(()=>worker(ip, port));
             Task.Run(packetsProcessor);
         }
@@ -68,7 +66,7 @@ namespace DPC_Client.Client
 
         private static async Task listener(NetworkStream stream)
         {
-            while (client.Connected)
+            while (IsConnected(client.Client))
             {
                 try
                 {
@@ -77,6 +75,7 @@ namespace DPC_Client.Client
 
                     Type packetType = detectPacketType(rawJson);
 
+                    // знаю что это можно упростить таким способом JsonSerializer.Deserialize<packetType>(rawJson)
                     if (packetType == typeof(KeyPacket))
                     {
                         keyPackets.AddLast(JsonSerializer.Deserialize<KeyPacket>(rawJson));
@@ -120,7 +119,7 @@ namespace DPC_Client.Client
 
         private static async Task sender(NetworkStream stream)
         {
-            while (client.Connected)
+            while (IsConnected(client.Client))
             {
                 if (packets.First is not null)
                 {
@@ -134,7 +133,7 @@ namespace DPC_Client.Client
                         log("I sent info about len of packet");
 
                         await stream.WriteAsync(packet, 0, packet.Length);
-                        log($"I send packet with len = {packet.Length}");
+                        log($"I sent packet with len = {packet.Length}");
 
 
                         packets.RemoveFirst();
@@ -153,7 +152,7 @@ namespace DPC_Client.Client
         // тут ошибка параметр S can not be null
         private static async Task clipBoardGetter()
         {
-            while (client.Connected)
+            while (IsConnected(client.Client))
             {
                 try
                 {
@@ -275,6 +274,17 @@ namespace DPC_Client.Client
             }
         }
 
+        private static bool IsConnected(Socket socket)
+        {
+            try
+            {
+                return !(socket.Poll(1, SelectMode.SelectRead) && socket.Available == 0);
+            }
+            catch (SocketException) 
+            { 
+                return false; 
+            }
+        }
 
 
         private static void log(string message)

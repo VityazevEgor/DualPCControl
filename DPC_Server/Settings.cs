@@ -1,6 +1,8 @@
-﻿using Microsoft.Win32;
+﻿using Microsoft.Win32.TaskScheduler;
 using System;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Windows.Forms;
@@ -23,23 +25,35 @@ namespace DPC_Server
         {
             try
             {
-                string exePath = Assembly.GetExecutingAssembly().Location;
-                RegistryKey? rk = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-                if (rk != null)
+                string exePath = Assembly.GetExecutingAssembly().Location.Replace(".dll", ".exe");
+                System.Diagnostics.Debug.WriteLine(exePath);
+                using (TaskService ts = new TaskService())
                 {
-                    if (runOnStartUp == true)
+                    if (runOnStartUp)
                     {
-                        rk.SetValue("DPC_Server", exePath);
+                        TaskDefinition td = ts.NewTask();
+                        td.RegistrationInfo.Description = "DPC Server autorun";
+                        td.Principal.RunLevel = TaskRunLevel.Highest; // Админ права на запуск
+
+                        LogonTrigger trigger = new LogonTrigger();
+                        td.Triggers.Add(trigger);
+
+                        td.Actions.Add(new ExecAction(exePath, null, null));
+
+                        ts.RootFolder.RegisterTaskDefinition("DPC Server", td);
                     }
                     else
                     {
-                        rk.DeleteValue("DPC_Server", false);
+                        if (ts.RootFolder.AllTasks.FirstOrDefault(t => t.Name == "DPC Server") is not null)
+                        {
+                            ts.RootFolder.DeleteTask("DPC Server");
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"I can't add my self to start up: {ex.Message}");
+                MessageBox.Show($"I can't add my self to start up: {ex.Message}\nSource:{ex.Source}");
             }
         }
 

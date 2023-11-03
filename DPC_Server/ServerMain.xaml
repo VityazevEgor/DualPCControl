@@ -5,23 +5,104 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DPC_Server"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="DPC Server | Coded by Egor Vityazev" Height="500" Width="500" Closed="Window_Closed" Icon="/Papirus-Team-Papirus-Devices-Network-server.512.png"
+        >
+    <Window.Background>
+        <LinearGradientBrush x:Name="AnimatedBackground" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#1C1C1C" Offset="0.0"/>
+            <GradientStop Color="#333333" Offset="1.0"/>
+        </LinearGradientBrush>
+    </Window.Background>
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <BeginStoryboard>
+                <Storyboard>
+                    <ColorAnimation Storyboard.TargetName="AnimatedBackground" Storyboard.TargetProperty="GradientStops[1].Color" From="#333333" To="#1C1C1C" Duration="0:0:5" AutoReverse="True" RepeatBehavior="Forever"/>
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </Window.Triggers>
     <Grid>
-        <TabControl>
-            <TabItem Header="Settings">
-                <Grid Background="#FFE5E5E5">
-                    <Label Content="Button for overlay activation:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="overlayButtonBox" HorizontalAlignment="Left" Margin="10,36,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="162" KeyDown="overlayButtonBox_KeyDown" PreviewTextInput="overlayButtonBox_PreviewTextInput"/>
+        <TabControl Background="Transparent" BorderBrush="Transparent">
+            <TabControl.Resources>
+                <Style TargetType="{x:Type TabItem}">
+                    <Setter Property="Foreground" Value="#FF007ACC"/>
+                    <Setter Property="FontSize" Value="15"/>
+                    <Setter Property="Background" Value="#333333"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type TabItem}">
+                                <Border Name="Border" BorderThickness="1,1,1,0" BorderBrush="#FF007ACC" Background="{TemplateBinding Background}" CornerRadius="10,10,0,0">
+                                    <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="10,2"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#FF007ACC"/>
+                                        <Setter Property="Foreground" Value="#FFFFFF"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSelected" Value="False">
+                                        <Setter TargetName="Border" Property="Background" Value="#333333"/>
+                                        <Setter Property="Foreground" Value="#FF007ACC"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
 
-                    <Label Content="Server port:" HorizontalAlignment="Left" Margin="10,59,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.064,1.708"/>
-                    <TextBox x:Name="serverPortBox" HorizontalAlignment="Left" Margin="10,85,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="162"/>
-                    <CheckBox x:Name="startUpBox" Content="Run on start up" HorizontalAlignment="Left" Margin="10,118,0,0" VerticalAlignment="Top" Checked="startUpBox_Checked" Unchecked="startUpBox_Unchecked"/>
-                    <Button x:Name="runButton" Content="Run server" HorizontalAlignment="Left" Margin="10,146,0,0" VerticalAlignment="Top" Width="162" Click="runButton_Click"/>
+                <Style TargetType="{x:Type CheckBox}">
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                    <Setter Property="FontSize" Value="15"/>
+                    <Setter Property="Background" Value="#333333"/>
+                    <Setter Property="BorderBrush" Value="#FF007ACC"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type CheckBox}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="{TemplateBinding FontSize}" Height="{TemplateBinding FontSize}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="2">
+                                        <Viewbox Width="{TemplateBinding FontSize}" Height="{TemplateBinding FontSize}">
+                                            <TextBlock Text="✓" Foreground="{TemplateBinding Foreground}" Visibility="{TemplateBinding IsChecked, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                        </Viewbox>
+                                    </Border>
+                                    <ContentPresenter Margin="5,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </TabControl.Resources>
+            <TabItem Header="Settings">
+                <Grid Background="#1C1C1C">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Label Content="Button for overlay activation:" Foreground="LightBlue" FontSize="15" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.Row="0"/>
+                    <TextBox KeyDown="overlayButtonBox_KeyDown" PreviewTextInput="overlayButtonBox_PreviewTextInput" x:Name="overlayButtonBox" Foreground="White" Background="#333333" BorderBrush="#333333" FontSize="15" HorizontalAlignment="Stretch" Margin="10,10,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Grid.Row="1" ToolTip="Click on the input field, then click on the key you want to use to activate the overlay"/>
+
+                    <Label Content="Server port:" Foreground="LightBlue" FontSize="15" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.Row="2"/>
+                    <TextBox x:Name="serverPortBox" Foreground="White" Background="#333333" BorderBrush="#333333" FontSize="15" HorizontalAlignment="Stretch" Margin="10,10,10,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Grid.Row="3"/>
+
+                    <CheckBox Checked="startUpBox_Checked" Unchecked="startUpBox_Unchecked" x:Name="startUpBox" Content="Run on start up" Foreground="#FFFFFF" FontSize="15" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Grid.Row="4" ToolTip="If enabled, the server will start when the computer starts"/>
+
+                    <Button Click="runButton_Click" x:Name="runButton" Content="Run server" Foreground="#FFFFFF" Background="#FF007ACC" BorderBrush="#FF007ACC" FontSize="15" Margin="10,52,10,0" VerticalAlignment="Top" Grid.Row="5"/>
                 </Grid>
+
             </TabItem>
             <TabItem Header="Debug">
-                <Grid Background="#FFE5E5E5">
-                    <TextBox x:Name="logsBox" HorizontalAlignment="Center" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Center" Width="774" Height="386"/>
+                <Grid Background="#1C1C1C">
+                    <TextBox x:Name="logsBox" Foreground="#FFFFFF" Background="#333333" BorderBrush="#333333"
+                             HorizontalScrollBarVisibility ="Auto"
+                             VerticalScrollBarVisibility ="Auto"
+                             AcceptsReturn ="True"
+                             TextWrapping ="Wrap"
+                             Padding ="5"
+                             FontSize ="15"
+                             HorizontalAlignment ="Stretch"
+                             VerticalAlignment ="Stretch"/>
                 </Grid>
             </TabItem>
         </TabControl>

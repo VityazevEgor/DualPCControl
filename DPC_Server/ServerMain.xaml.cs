@@ -17,6 +17,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using DPC_Server.Server;
 using Gma.System.MouseKeyHook;
+using MessageBox = System.Windows.MessageBox;
 
 namespace DPC_Server
 {
@@ -29,7 +30,7 @@ namespace DPC_Server
     public partial class MainWindow : Window
     {
         private IKeyboardMouseEvents m_GlobalHook;
-        private Overlay ov = new Overlay();
+        private Overlay ov;
         private Settings? settings = null;
         private DispatcherTimer timer = new DispatcherTimer();
         public MainWindow()
@@ -44,7 +45,14 @@ namespace DPC_Server
             updateSettingsBoxes();
             if (settings.runOnStartUp)
             {
-                runButton_Click(null, null);
+                try
+                {
+                    runButton_Click(null, null);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                }
             }
 
             timer.Interval = TimeSpan.FromMilliseconds(100);
@@ -54,7 +62,7 @@ namespace DPC_Server
 
         private void updateSettingsBoxes()
         {
-            overlayButtonBox.Text = settings.overlayKey.ToString();
+            overlayButtonBox.Text = settings?.overlayKey.ToString();
             serverPortBox.Text = settings.port.ToString();
             startUpBox.IsChecked = settings.runOnStartUp;
         }
@@ -62,7 +70,7 @@ namespace DPC_Server
 
         private void OnKeyDown(object? sender, System.Windows.Forms.KeyEventArgs e)
         {
-            if (e.KeyCode == settings.overlayKey)
+            if (e.KeyCode == settings?.overlayKey)
             {
                 if (ov.IsVisible)
                 {
@@ -102,6 +110,7 @@ namespace DPC_Server
                 settings.setStartUp();
                 settings.save();
                 SMain.Start(settings.port);
+                ov = new Overlay(settings.overlayKey);
 
                 runButton.Content = "Stop server";
             }
@@ -111,7 +120,8 @@ namespace DPC_Server
                 runButton.Content = "Run server";
                 m_GlobalHook.KeyDown -= OnKeyDown;
                 m_GlobalHook.Dispose();
-                timer.Stop();
+                //timer.Stop();
+                ov.Close();
             }
         }
 
@@ -135,6 +145,11 @@ namespace DPC_Server
         private void startUpBox_Unchecked(object sender, RoutedEventArgs e)
         {
             settings.runOnStartUp = false;
+        }
+
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            Process.GetCurrentProcess().Kill();
         }
     }
 }

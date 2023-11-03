@@ -1,17 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using DPC_Server.Server;
 using DPC_Server.Server.Models;
 
@@ -22,15 +13,18 @@ namespace DPC_Server
     /// </summary>
     public partial class Overlay : Window
     {
-        private const bool debug = false;
+        private const bool debug = true;
 
-        private string? lastImgPath = null;
         [DllImport("user32.dll")]
         private static extern int GetSystemMetrics(int nIndex);
 
-        public Overlay()
+        // это нужно чтобы избавиться от ошибки залипания клавиш, когда мы выходим из оверлея (успевает отправиться только с инфой о том что кнопка зажата)
+        private Key _ignoreKey;
+
+        public Overlay(System.Windows.Forms.Keys ignoreKey)
         {
             InitializeComponent();
+            _ignoreKey = KeyInterop.KeyFromVirtualKey((int)ignoreKey);
             if (!debug)
             {
                 this.Height = GetSystemMetrics(1);
@@ -43,13 +37,18 @@ namespace DPC_Server
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
-
-            SMain.sendPacket<KeyPacket>(new KeyPacket { key = e.Key, type = 1 });
+            if (e.Key != _ignoreKey)
+            {
+                SMain.sendPacket(new KeyPacket { key = e.Key, type = 1 });
+            }
         }
 
         private void Window_KeyUp(object sender, KeyEventArgs e)
         {
-            SMain.sendPacket<KeyPacket>(new KeyPacket { key = e.Key, type =2 });
+            if (e.Key != _ignoreKey)
+            {
+                SMain.sendPacket(new KeyPacket { key = e.Key, type = 2 });
+            }
         }
 
 
@@ -60,24 +59,24 @@ namespace DPC_Server
             if (DateTime.Now - latMouseMove >= TimeSpan.FromMilliseconds(50))
             {
                 Point pos = e.GetPosition(this);
-                SMain.sendPacket<MouseMovePacket>(new MouseMovePacket { x = pos.X, y = pos.Y, formHeight = this.Height, formWidth = this.Width });
+                SMain.sendPacket(new MouseMovePacket { x = pos.X, y = pos.Y, formHeight = this.Height, formWidth = this.Width });
                 latMouseMove = DateTime.Now;
             }
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            SMain.sendPacket<MouseButtonPacket>(new MouseButtonPacket { mButton = e.ChangedButton, state = 1 });
+            SMain.sendPacket(new MouseButtonPacket { mButton = e.ChangedButton, state = 1 });
         }
 
         private void Window_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            SMain.sendPacket<MouseButtonPacket>(new MouseButtonPacket { mButton = e.ChangedButton, state = 2 });
+            SMain.sendPacket(new MouseButtonPacket { mButton = e.ChangedButton, state = 2 });
         }
 
         private void Window_MouseWheel(object sender, MouseWheelEventArgs e)
         {
-            SMain.sendPacket<MouseWheelPacket>(new MouseWheelPacket { delta = e.Delta });
+            SMain.sendPacket(new MouseWheelPacket { delta = e.Delta });
         }
 
         
@@ -129,16 +128,8 @@ namespace DPC_Server
                     image.BeginInit();
                     image.UriSource = new Uri(newFileName, UriKind.Relative);
                     image.EndInit();
-                    if (lastImgPath is not null)
-                    {
-                        //System.IO.File.Delete(lastImgPath);
-                    }
-                    lastImgPath = newFileName;
                     this.Background = new ImageBrush(image);
-                    
                 }
-
-
 
             }
         }
