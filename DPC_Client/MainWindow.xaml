@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:DPC_Client"
         mc:Ignorable="d"
-        Title="DPC Client | Coded by Egor Vityazev" Height="500" Width="500">
+        Title="DPC Client | Coded by Egor Vityazev" Height="500" Width="500" Icon="/icons8-windows-client-100.png">
     <Window.Background>
         <LinearGradientBrush x:Name="AnimatedBackground" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#1C1C1C" Offset="0.0"/>

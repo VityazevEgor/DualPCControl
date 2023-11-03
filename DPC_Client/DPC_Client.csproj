@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>icons8-windows-client-100.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,7 +17,20 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="icons8-windows-client-100.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="icons8-windows-client-100.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="TaskScheduler" Version="2.10.1" />
+    <PackageReference Include="TextCopy" Version="6.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="icons8-windows-client-100.png" />
   </ItemGroup>
 
 </Project>

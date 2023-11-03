@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using DPC_Server.Server.Models;
+using TextCopy;
 
 namespace DPC_Server.Server
 {
@@ -121,8 +122,7 @@ namespace DPC_Server.Server
 
                     // получаем пакеты с инфой о буфере обмена
                     var cbPacket = JsonSerializer.Deserialize<ClipBoardPacket>(Encoding.UTF8.GetString(rawBuffer));
-                    ClibBoardAPI.ClearClipboard();
-                    ClibBoardAPI.processClipPacket(cbPacket);
+                    await ClipboardService.SetTextAsync(Encoding.UTF8.GetString(cbPacket.clipBoardData));
                     log($"Got cb packet: {string.Join(',',cbPacket.clipBoardData)}");
                 }
                 catch (Exception ex)
@@ -153,20 +153,26 @@ namespace DPC_Server.Server
         }
 
 
+        // с использованием библиотеки TextCopy
         public static void sendClipBoard()
         {
             try
             {
-                if (ClibBoardAPI.ContainsText())
+                string? text = ClipboardService.GetText();
+                if (text != null)
                 {
-                    var packet = new ClipBoardPacket { type = 1, clipBoardData = Encoding.UTF8.GetBytes(ClibBoardAPI.GetText()) };
+                    var packet = new ClipBoardPacket { type = 1, clipBoardData = Encoding.UTF8.GetBytes(text) };
                     sendPacket(packet);
-                    log($"I added cp packet");
+                    log("I sent clipBoard packet");
+                }
+                else
+                {
+                    log("No text in clipBoard");
                 }
             }
             catch (Exception ex)
             {
-                log($"Got error in cpGetter: {ex.Message}");
+                log("Error in sendClipBoard: " + ex.Message);
             }
         }
 
@@ -178,10 +184,10 @@ namespace DPC_Server.Server
             {
                 try
                 {
-                    string currentLayout = LayoutAPI.GetLayout();//LayoutAPI.GetLayoutCode();
+                    string currentLayout = LayoutAPI.GetLayout();
                     if (lastLayout != currentLayout)
                     {
-                        sendPacket<LayoutPacket>(new LayoutPacket { layoutCode = currentLayout });
+                        sendPacket(new LayoutPacket { layoutCode = currentLayout });
                         lastLayout = currentLayout;
                         log($"I added packet about layout with code = {lastLayout}");
                     }
@@ -190,7 +196,7 @@ namespace DPC_Server.Server
                 {
                     log($"Can't get layout cuz of it: {ex.Message}");
                 }
-                await Task.Delay(300);
+                await Task.Delay(200);
             }
         }
 
@@ -213,7 +219,7 @@ namespace DPC_Server.Server
         }
         private static void log(string msg)
         {
-            if (logs.Count > 15) logs.Clear();
+            if (logs.Count > 12) logs.Clear();
             logs.Add($"[{DateTime.Now}] {msg}");
         }
 

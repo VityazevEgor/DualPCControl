@@ -25,7 +25,6 @@ namespace DPC_Client.Client
 
         //пакеты, которые мы отправляем
         private static LinkedList<byte[]> packets = new LinkedList<byte[]>();
-        private static ClipBoardPacket lastCPPacket = null;
 
         public static bool isLaunched = false;
 
@@ -53,8 +52,7 @@ namespace DPC_Client.Client
                     client = new TcpClient(ip, port);
                     NetworkStream stream = client.GetStream();
                     packets.Clear();
-                    lastCPPacket = null;
-                    ClipBoardAPI.ClearClipboard();
+                    await ClipBoardAPI.ClearClipboard();
                     KeyboardEmulation.clearPressedKeys();
 
                     // запуск всего
@@ -86,7 +84,7 @@ namespace DPC_Client.Client
 
                     Type packetType = detectPacketType(rawJson);
 
-                    // знаю что это можно упростить таким способом JsonSerializer.Deserialize<packetType>(rawJson)
+                    // знаю что это можно упростить, но пока оставлю так
                     if (packetType == typeof(KeyPacket))
                     {
                         keyPackets.AddLast(JsonSerializer.Deserialize<KeyPacket>(rawJson));
@@ -110,7 +108,6 @@ namespace DPC_Client.Client
                     if (packetType == typeof(ClipBoardPacket))
                     {
                         clipBoardPackets.AddLast(JsonSerializer.Deserialize<ClipBoardPacket>(rawJson));
-                        lastCPPacket = clipBoardPackets.Last();
                         log($"Got clipBoard packet");
                     }
                     if (packetType == typeof(LayoutPacket))
@@ -160,32 +157,28 @@ namespace DPC_Client.Client
         }
 
 
-        // тут ошибка параметр S can not be null
         private static async Task clipBoardGetter()
         {
             while (client != null && IsConnected(client.Client))
             {
                 try
                 {
-                    if (ClipBoardAPI.ContainsText())
+                    var text = await ClipBoardAPI.GetTextN();
+                    if (text != null)
                     {
-                        var packet = new ClipBoardPacket { type = 1, clipBoardData = Encoding.UTF8.GetBytes(ClipBoardAPI.GetText()) };
-                        if (!packet.Equals(lastCPPacket))
-                        {
-                            sendPacket(packet);
-                            lastCPPacket = packet;
-                            log($"I added cp packet");
-                        }
+                        var packet = new ClipBoardPacket { type = 1, clipBoardData = Encoding.UTF8.GetBytes(text) };
+                        sendPacket(packet);
+                        log($"I added cp packet");
                     }
                 }
                 catch (Exception ex)
                 {
                     log($"Got error in cpGetter: {ex.Message}");
                 }
-
-                await Task.Delay(10);
+                await Task.Delay(100);
             }
         }
+
 
 
         public static void sendPacket<T>(T packet)
@@ -261,7 +254,7 @@ namespace DPC_Client.Client
 
                 ProcessPacket(mouseWheelPackets, MouseEmulation.wheel);
 
-                ProcessPacket(clipBoardPackets, ClipBoardAPI.processClipPacket);
+                ProcessPacket(clipBoardPackets, ClipBoardAPI.processClipPacketN);
 
                 ProcessPacket(layoutPackets, LayoutAPI.setLayout);
 

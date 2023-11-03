@@ -13,7 +13,7 @@ namespace DPC_Server
     /// </summary>
     public partial class Overlay : Window
     {
-        private const bool debug = true;
+        private const bool debug = false;
 
         [DllImport("user32.dll")]
         private static extern int GetSystemMetrics(int nIndex);
@@ -82,55 +82,50 @@ namespace DPC_Server
         
         private void Window_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (!debug)
+            if (this.IsVisible)
             {
-                if (this.IsVisible)
+                // отпрвляем буфер обмена каждый раз когда начинаем управлять вторым ПК
+                SMain.sendClipBoard();
+                // делаем скриншот
+                int monitorH = GetSystemMetrics(1);
+                int monitorW = GetSystemMetrics(0);
+                string newFileName = System.IO.Path.GetTempFileName();
+                using (var bmp = new System.Drawing.Bitmap(monitorW, monitorH))
                 {
-                    // отпрвляем буфер обмена каждый раз когда начинаем управлять вторым ПК
-                    SMain.sendClipBoard();
-
-                    // делаем скриншот
-                    int monitorH = GetSystemMetrics(1);
-                    int monitorW = GetSystemMetrics(0);
-                    string newFileName = System.IO.Path.GetTempFileName();
-                    using (var bmp = new System.Drawing.Bitmap(monitorW, monitorH))
+                    using (var g = System.Drawing.Graphics.FromImage(bmp))
                     {
-                        using (var g = System.Drawing.Graphics.FromImage(bmp))
+                        g.CopyFromScreen(0, 0, 0, 0, new System.Drawing.Size(monitorW, monitorH));
+
+                        // Создание шрифта и кисти
+                        using (var font = new System.Drawing.Font("Arial", 16))
+                        using (var brush = new System.Drawing.SolidBrush(System.Drawing.Color.Red))
+                        using (var backgroundBrush = new System.Drawing.SolidBrush(System.Drawing.Color.Black))
                         {
-                            g.CopyFromScreen(0, 0, 0, 0, new System.Drawing.Size(monitorW, monitorH));
+                            var text = "You are controlling second pc";
+                            var point = new System.Drawing.PointF(0, 0);
 
-                            // Создание шрифта и кисти
-                            using (var font = new System.Drawing.Font("Arial", 16))
-                            using (var brush = new System.Drawing.SolidBrush(System.Drawing.Color.Red))
-                            using (var backgroundBrush = new System.Drawing.SolidBrush(System.Drawing.Color.Black))
-                            {
-                                var text = "You are controlling second pc";
-                                var point = new System.Drawing.PointF(0, 0);
+                            // Получение размеров текста
+                            var textSize = g.MeasureString(text, font);
 
-                                // Получение размеров текста
-                                var textSize = g.MeasureString(text, font);
+                            // Рисование фона
+                            g.FillRectangle(backgroundBrush, point.X, point.Y, textSize.Width, textSize.Height);
 
-                                // Рисование фона
-                                g.FillRectangle(backgroundBrush, point.X, point.Y, textSize.Width, textSize.Height);
-
-                                // Добавление надписи
-                                g.DrawString(text, font, brush, point);
-                            }
+                            // Добавление надписи
+                            g.DrawString(text, font, brush, point);
                         }
-
-                        // Сохранение скриншота в файл
-                        bmp.Save(newFileName, System.Drawing.Imaging.ImageFormat.Png);
                     }
 
-
-                    // Загрузка скриншота и установка его в качестве фона формы
-                    var image = new System.Windows.Media.Imaging.BitmapImage();
-                    image.BeginInit();
-                    image.UriSource = new Uri(newFileName, UriKind.Relative);
-                    image.EndInit();
-                    this.Background = new ImageBrush(image);
+                    // Сохранение скриншота в файл
+                    bmp.Save(newFileName, System.Drawing.Imaging.ImageFormat.Png);
                 }
 
+
+                // Загрузка скриншота и установка его в качестве фона формы
+                var image = new System.Windows.Media.Imaging.BitmapImage();
+                image.BeginInit();
+                image.UriSource = new Uri(newFileName, UriKind.Relative);
+                image.EndInit();
+                this.Background = new ImageBrush(image);
             }
         }
     }
