@@ -19,6 +19,7 @@ namespace DPC_Server
 
         private static string pathToSave = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DPC_Server");
         private const string fileName = "DPC_Server_Settings.txt";
+        private const string taskName = "DPC Server";
 
         // добовляет .dll файл а не exe
         public void setStartUp()
@@ -31,20 +32,23 @@ namespace DPC_Server
                 {
                     if (runOnStartUp)
                     {
-                        TaskDefinition td = ts.NewTask();
-                        td.RegistrationInfo.Description = "DPC Server autorun";
-                        td.Principal.RunLevel = TaskRunLevel.Highest; // Админ права на запуск
+                        if (ts.RootFolder.AllTasks.FirstOrDefault(t => t.Name == taskName) is null)
+                        {
+                            TaskDefinition td = ts.NewTask();
+                            td.RegistrationInfo.Description = "DPC Server autorun";
+                            td.Principal.RunLevel = TaskRunLevel.Highest; // Админ права на запуск
 
-                        LogonTrigger trigger = new LogonTrigger();
-                        td.Triggers.Add(trigger);
+                            LogonTrigger trigger = new LogonTrigger();
+                            td.Triggers.Add(trigger);
 
-                        td.Actions.Add(new ExecAction(exePath, null, null));
+                            td.Actions.Add(new ExecAction(exePath, null, null));
 
-                        ts.RootFolder.RegisterTaskDefinition("DPC Server", td);
+                            ts.RootFolder.RegisterTaskDefinition(taskName, td);
+                        }
                     }
                     else
                     {
-                        if (ts.RootFolder.AllTasks.FirstOrDefault(t => t.Name == "DPC Server") is not null)
+                        if (ts.RootFolder.AllTasks.FirstOrDefault(t => t.Name == taskName) is not null)
                         {
                             ts.RootFolder.DeleteTask("DPC Server");
                         }
